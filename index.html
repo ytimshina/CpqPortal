@@ -357,17 +357,18 @@
                 quoteNumber: quoteNumber
             };
             
-            // Convert data to query parameters
+            // Log the data for debugging
+            console.log("Sending data to calculator:", shippingData);
+            
+            // Convert data to query parameters - encode values properly
             const queryParams = new URLSearchParams();
             for (const [key, value] of Object.entries(shippingData)) {
-                queryParams.append(key, value);
+                queryParams.append(key, encodeURIComponent(value));
             }
             
-            // Open new window with shipping calculator using the hosted URL
-            const calculatorWindow = window.open('https://ytimshina.github.io/ShippingCals-c/?' + queryParams.toString(), 
-                'ShippingCalculator', 
-                'width=1200,height=800');
-                
+            // Open in a new tab instead of a popup window to avoid popup blockers
+            window.open('https://ytimshina.github.io/ShippingCals-c/?' + queryParams.toString(), '_blank');
+            
             // Set up message listener for receiving data back from calculator
             window.addEventListener('message', function(event) {
                 // Verify the origin for security
