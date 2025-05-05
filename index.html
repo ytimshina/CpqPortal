@@ -296,9 +296,12 @@
                 <div class="config-item">
                     <label for="curb-type">Curb Type</label>
                     <select id="curb-type">
-                        <option value="knockdown-ship">Knockdown Ship</option>
-                        <option value="welded">Welded</option>
-                        <option value="aluminum">Aluminum</option>
+                        <option value="MBC1">MBC1</option>
+                        <option value="MBC3">MBC3</option>
+                        <option value="MBC7">MBC7</option>
+                        <option value="MBC7-3Piece">MBC7-3 Piece</option>
+                        <option value="Butler-IF">Butler IF</option>
+                        <option value="MBC10">MBC10</option>
                     </select>
                 </div>
             </div>
@@ -307,7 +310,7 @@
         <div class="action-bar">
             <div>
                 <span>Quote Number: </span>
-                <span class="quote-number">Q-230587</span>
+                <span class="quote-number" id="quote-number">Q-230587</span>
             </div>
             <div>
                 <button class="action-button">Save Configuration</button>
@@ -328,7 +331,7 @@
                     <li>Product: UC10.2 Curb</li>
                     <li>Dimensions: 42.13" × 42.13" × 14"</li>
                     <li>Weight: 85 lbs</li>
-                    <li>Type: Knockdown Ship</li>
+                    <li>Type: MBC1</li>
                 </ul>
             </div>
         </div>
@@ -341,7 +344,8 @@
             const length = document.getElementById('length').value;
             const height = document.getElementById('height').value;
             const weight = document.getElementById('weight').value;
-            const quoteNumber = 'Q-230587';
+            const curbType = document.getElementById('curb-type').value;
+            const quoteNumber = document.getElementById('quote-number').textContent;
             
             // Create data object to pass to shipping calculator
             const shippingData = {
@@ -349,6 +353,7 @@
                 length: length,
                 height: height,
                 weight: weight,
+                curbType: curbType,
                 quoteNumber: quoteNumber
             };
             
@@ -358,36 +363,104 @@
                 queryParams.append(key, value);
             }
             
-            // Open new window with shipping calculator
-            const calculatorWindow = window.open('shipping-calculator.html?' + queryParams.toString(), 
+            // Open new window with shipping calculator using the hosted URL
+            const calculatorWindow = window.open('https://ytimshina.github.io/ShippingCals-c/?' + queryParams.toString(), 
                 'ShippingCalculator', 
-                'width=800,height=700');
+                'width=1200,height=800');
                 
             // Set up message listener for receiving data back from calculator
             window.addEventListener('message', function(event) {
                 // Verify the origin for security
                 // In production, you would check against your actual calculator domain
-                // if (event.origin !== 'your-calculator-domain') return;
+                if (event.origin !== 'https://ytimshina.github.io') {
+                    console.log('Received message from unexpected origin:', event.origin);
+                    return;
+                }
                 
                 if (event.data && event.data.shippingCost) {
                     // Handle the shipping cost data returned from calculator
-                    alert('Shipping cost calculated: $' + event.data.shippingCost);
+                    const shippingCost = event.data.shippingCost;
+                    const shippingType = event.data.shippingType || 'Standard Freight';
+                    
+                    // Show alert with calculated cost
+                    alert('Shipping calculation complete!\n\nType: ' + shippingType + '\nCost: $' + shippingCost);
                     
                     // Update the shipping tab or display the cost elsewhere
                     const tabContent = document.querySelector('.tab-content');
-                    const shippingInfo = document.createElement('p');
-                    shippingInfo.innerHTML = '<strong>Calculated Shipping Cost:</strong> $' + event.data.shippingCost;
+                    
+                    // Create shipping summary
+                    const shippingInfo = document.createElement('div');
+                    shippingInfo.innerHTML = `
+                        <h3>Shipping Details</h3>
+                        <p><strong>Quote Number:</strong> ${quoteNumber}</p>
+                        <p><strong>Shipping Type:</strong> ${shippingType}</p>
+                        <p><strong>Calculated Shipping Cost:</strong> $${shippingCost}</p>
+                        <p><strong>Dimensions:</strong> ${width}" × ${length}" × ${height}"</p>
+                        <p><strong>Weight:</strong> ${weight} lbs</p>
+                        <p><strong>Curb Type:</strong> ${curbType}</p>
+                    `;
+                    
+                    // Clear existing content and add shipping info
+                    tabContent.innerHTML = '';
                     tabContent.appendChild(shippingInfo);
+                    
+                    // Switch to the Shipping tab
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab')[3].classList.add('active');
                 }
             }, false);
         });
         
         // Tab functionality
         const tabs = document.querySelectorAll('.tab');
-        tabs.forEach(tab => {
+        tabs.forEach((tab, index) => {
             tab.addEventListener('click', function() {
                 tabs.forEach(t => t.classList.remove('active'));
                 this.classList.add('active');
+                
+                // Update tab content based on selected tab
+                const tabContent = document.querySelector('.tab-content');
+                
+                switch(index) {
+                    case 0: // Summary
+                        tabContent.innerHTML = `
+                            <p>Configuration Summary:</p>
+                            <ul>
+                                <li>Product: ${document.getElementById('product-model').value} Curb</li>
+                                <li>Dimensions: ${document.getElementById('width').value}" × ${document.getElementById('length').value}" × ${document.getElementById('height').value}"</li>
+                                <li>Weight: ${document.getElementById('weight').value} lbs</li>
+                                <li>Type: ${document.getElementById('curb-type').value}</li>
+                            </ul>
+                        `;
+                        break;
+                    case 1: // Specifications
+                        tabContent.innerHTML = `
+                            <p>Product Specifications:</p>
+                            <ul>
+                                <li>Material: Galvanized Steel</li>
+                                <li>Insulation: ${document.getElementById('insulated-curb').value === 'yes' ? 'Yes' : 'No'}</li>
+                                <li>Top Flange Width: ${document.getElementById('top-flange').value}"</li>
+                                <li>Max Load Capacity: 750 lbs</li>
+                            </ul>
+                        `;
+                        break;
+                    case 2: // Documents
+                        tabContent.innerHTML = `
+                            <p>Available Documents:</p>
+                            <ul>
+                                <li><a href="#" onclick="alert('Document would download here')">Installation Manual</a></li>
+                                <li><a href="#" onclick="alert('Document would download here')">Product Specifications</a></li>
+                                <li><a href="#" onclick="alert('Document would download here')">Warranty Information</a></li>
+                            </ul>
+                        `;
+                        break;
+                    case 3: // Shipping
+                        tabContent.innerHTML = `
+                            <p>No shipping information available yet.</p>
+                            <p>Click "Calculate Shipping" to determine freight costs.</p>
+                        `;
+                        break;
+                }
             });
         });
     </script>
